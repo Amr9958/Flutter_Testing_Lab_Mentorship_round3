@@ -1,5 +1,28 @@
 import 'package:flutter/material.dart';
 
+// Validation helper class for testing
+class ValidationHelper {
+  static bool isValidEmail(String email) {
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    return emailRegex.hasMatch(email);
+  }
+
+  static bool isValidPassword(String password) {
+    // Password must be at least 8 characters long
+    if (password.length < 8) return false;
+
+    // Must contain at least one number
+    if (!RegExp(r'[0-9]').hasMatch(password)) return false;
+
+    // Must contain at least one special character
+    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) return false;
+
+    return true;
+  }
+}
+
 class UserRegistrationForm extends StatefulWidget {
   const UserRegistrationForm({super.key});
 
@@ -17,15 +40,12 @@ class _UserRegistrationFormState extends State<UserRegistrationForm> {
   bool _isLoading = false;
   String _message = '';
 
-  bool isValidEmail(String email) {
-    return email.contains('@');
-  }
-
-  bool isValidPassword(String password) {
-    return true;
-  }
-
   Future<void> _submitForm() async {
+    // Validate form before submission
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     setState(() {
       _isLoading = true;
       _message = '';
@@ -77,7 +97,7 @@ class _UserRegistrationFormState extends State<UserRegistrationForm> {
                 if (value == null || value.isEmpty) {
                   return 'Please enter your email';
                 }
-                if (!isValidEmail(value)) {
+                if (!ValidationHelper.isValidEmail(value)) {
                   return 'Please enter a valid email';
                 }
                 return null;
@@ -96,7 +116,7 @@ class _UserRegistrationFormState extends State<UserRegistrationForm> {
                 if (value == null || value.isEmpty) {
                   return 'Please enter a password';
                 }
-                if (!isValidPassword(value)) {
+                if (!ValidationHelper.isValidPassword(value)) {
                   return 'Password is too weak';
                 }
                 return null;

@@ -1,5 +1,70 @@
 import 'package:flutter/material.dart';
 
+// Cart manager class for business logic and testing
+class CartManager {
+  final List<CartItem> _items = [];
+
+  List<CartItem> get items => List.unmodifiable(_items);
+
+  void addItem(String id, String name, double price, {double discount = 0.0}) {
+    // Check if item already exists
+    final existingIndex = _items.indexWhere((item) => item.id == id);
+    if (existingIndex != -1) {
+      // Update quantity instead of adding new entry
+      _items[existingIndex].quantity++;
+    } else {
+      // Add new item
+      _items.add(
+        CartItem(id: id, name: name, price: price, discount: discount),
+      );
+    }
+  }
+
+  void removeItem(String id) {
+    _items.removeWhere((item) => item.id == id);
+  }
+
+  void updateQuantity(String id, int newQuantity) {
+    final index = _items.indexWhere((item) => item.id == id);
+    if (index != -1) {
+      if (newQuantity <= 0) {
+        _items.removeAt(index);
+      } else {
+        _items[index].quantity = newQuantity;
+      }
+    }
+  }
+
+  void clearCart() {
+    _items.clear();
+  }
+
+  double get subtotal {
+    double total = 0;
+    for (var item in _items) {
+      total += item.price * item.quantity;
+    }
+    return total;
+  }
+
+  double get totalDiscount {
+    double discount = 0;
+    for (var item in _items) {
+      // Calculate discount amount: price * quantity * discount percentage
+      discount += item.price * item.quantity * item.discount;
+    }
+    return discount;
+  }
+
+  double get totalAmount {
+    return subtotal - totalDiscount;
+  }
+
+  int get totalItems {
+    return _items.fold(0, (sum, item) => sum + item.quantity);
+  }
+}
+
 class CartItem {
   final String id;
   final String name;
@@ -24,64 +89,37 @@ class ShoppingCart extends StatefulWidget {
 }
 
 class _ShoppingCartState extends State<ShoppingCart> {
-  final List<CartItem> _items = [];
+  final CartManager _cartManager = CartManager();
 
   void addItem(String id, String name, double price, {double discount = 0.0}) {
     setState(() {
-      _items.add(
-        CartItem(id: id, name: name, price: price, discount: discount),
-      );
+      _cartManager.addItem(id, name, price, discount: discount);
     });
   }
 
   void removeItem(String id) {
     setState(() {
-      _items.removeWhere((item) => item.id == id);
+      _cartManager.removeItem(id);
     });
   }
 
   void updateQuantity(String id, int newQuantity) {
     setState(() {
-      final index = _items.indexWhere((item) => item.id == id);
-      if (index != -1) {
-        if (newQuantity <= 0) {
-          _items.removeAt(index);
-        } else {
-          _items[index].quantity = newQuantity;
-        }
-      }
+      _cartManager.updateQuantity(id, newQuantity);
     });
   }
 
   void clearCart() {
     setState(() {
-      _items.clear();
+      _cartManager.clearCart();
     });
   }
 
-  double get subtotal {
-    double total = 0;
-    for (var item in _items) {
-      total += item.price * item.quantity;
-    }
-    return total;
-  }
-
-  double get totalDiscount {
-    double discount = 0;
-    for (var item in _items) {
-      discount += item.discount * item.quantity;
-    }
-    return discount;
-  }
-
-  double get totalAmount {
-    return subtotal + totalDiscount;
-  }
-
-  int get totalItems {
-    return _items.fold(0, (sum, item) => sum + item.quantity);
-  }
+  double get subtotal => _cartManager.subtotal;
+  double get totalDiscount => _cartManager.totalDiscount;
+  double get totalAmount => _cartManager.totalAmount;
+  int get totalItems => _cartManager.totalItems;
+  List<CartItem> get items => _cartManager.items;
 
   @override
   Widget build(BuildContext context) {
@@ -151,14 +189,14 @@ class _ShoppingCartState extends State<ShoppingCart> {
         ),
         const SizedBox(height: 16),
 
-        _items.isEmpty
+        items.isEmpty
             ? const Center(child: Text('Cart is empty'))
             : ListView.builder(
                 physics: NeverScrollableScrollPhysics(),
                 shrinkWrap: true,
-                itemCount: _items.length,
+                itemCount: items.length,
                 itemBuilder: (context, index) {
-                  final item = _items[index];
+                  final item = items[index];
                   final itemTotal = item.price * item.quantity;
 
                   return Card(

@@ -1,5 +1,16 @@
 import 'package:flutter/material.dart';
 
+// Temperature conversion helper class for testing
+class TemperatureConverter {
+  static double celsiusToFahrenheit(double celsius) {
+    return (celsius * 9 / 5) + 32;
+  }
+
+  static double fahrenheitToCelsius(double fahrenheit) {
+    return (fahrenheit - 32) * 5 / 9;
+  }
+}
+
 class WeatherDisplay extends StatefulWidget {
   const WeatherDisplay({super.key});
 
@@ -15,14 +26,6 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
   String _selectedCity = 'New York';
 
   final List<String> _cities = ['New York', 'London', 'Tokyo', 'Invalid City'];
-
-  double celsiusToFahrenheit(double celsius) {
-    return celsius * 9 / 5;
-  }
-
-  double fahrenheitToCelsius(double fahrenheit) {
-    return fahrenheit - 32 * 5 / 9;
-  }
 
   // Simulate API call that sometimes returns null or malformed data
   Future<Map<String, dynamic>?> _fetchWeatherData(String city) async {
@@ -54,15 +57,37 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
       setState(() {
         _isLoading = true;
         _error = null;
+        _weatherData = null;
       });
     }
 
-    
-    final data = await _fetchWeatherData(_selectedCity);
-    setState(() {
-      _weatherData = WeatherData.fromJson(data); 
-      _isLoading = false;
-    });
+    try {
+      final data = await _fetchWeatherData(_selectedCity);
+
+      if (!mounted) return;
+
+      if (data == null) {
+        setState(() {
+          _error = 'Failed to load weather data';
+          _isLoading = false;
+        });
+        return;
+      }
+
+      setState(() {
+        _weatherData = WeatherData.fromJson(data);
+        _isLoading = false;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        _error = 'Error: ${e.toString()}';
+        _isLoading = false;
+        _weatherData = null;
+      });
+    }
   }
 
   @override
@@ -127,9 +152,28 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
           ),
           const SizedBox(height: 16),
 
-          if (_isLoading && _error == null)
+          if (_isLoading)
             const Center(child: CircularProgressIndicator())
-          
+          else if (_error != null)
+            Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                  const SizedBox(height: 16),
+                  Text(
+                    _error!,
+                    style: const TextStyle(color: Colors.red, fontSize: 16),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _loadWeather,
+                    child: const Text('Retry'),
+                  ),
+                ],
+              ),
+            )
           else if (_weatherData != null)
             Card(
               elevation: 4,
@@ -172,7 +216,7 @@ class _WeatherDisplayState extends State<WeatherDisplay> {
                     Center(
                       child: Text(
                         _useFahrenheit
-                            ? '${celsiusToFahrenheit(_weatherData!.temperatureCelsius).toStringAsFixed(1)}°F'
+                            ? '${TemperatureConverter.celsiusToFahrenheit(_weatherData!.temperatureCelsius).toStringAsFixed(1)}°F'
                             : '${_weatherData!.temperatureCelsius.toStringAsFixed(1)}°C',
                         style: const TextStyle(
                           fontSize: 48,
@@ -238,15 +282,20 @@ class WeatherData {
     required this.icon,
   });
 
-  
-  factory WeatherData.fromJson(Map<String, dynamic>? json) {
+
+  factory WeatherData.fromJson(Map<String, dynamic> json) {
+    // Validate required fields
+    if (!json.containsKey('city') || !json.containsKey('temperature')) {
+      throw FormatException('Missing required fields in weather data');
+    }
+
     return WeatherData(
-      city: json!['city'],
-      temperatureCelsius: json['temperature'].toDouble(),
-      description: json['description'],
-      humidity: json['humidity'], 
-      windSpeed: json['windSpeed'].toDouble(), 
-      icon: json['icon'], 
+      city: json['city'] as String,
+      temperatureCelsius: (json['temperature'] as num).toDouble(),
+      description: json['description'] as String? ?? 'Unknown',
+      humidity: json['humidity'] as int? ?? 0,
+      windSpeed: (json['windSpeed'] as num?)?.toDouble() ?? 0.0,
+      icon: json['icon'] as String? ?? '❓',
     );
   }
 }
