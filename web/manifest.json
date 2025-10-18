@@ -1,6 +1,6 @@
 {
-    "name": "flutter_testing_lab",
-    "short_name": "flutter_testing_lab",
+    "name": "animals_store",
+    "short_name": "animals_store",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

@@ -1,23 +1,33 @@
+import 'package:animals_store/core/di/injection_container.dart';
+import 'package:animals_store/core/routes/app_router.dart';
+import 'package:animals_store/core/routes/app_routes.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_testing_lab/home_page.dart';
 
-void main() {
-  runApp(const FlutterTestingLabApp());
+void main() async {
+  // Ensure Flutter is initialized
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize dependencies
+  await initializeDependencies();
+
+  runApp(const MyApp());
 }
 
-class FlutterTestingLabApp extends StatelessWidget {
-  const FlutterTestingLabApp({super.key});
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Testing Lab',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
-      ),
-      home: const HomePage(),
+      title: 'Animals Store',
       debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+      ),
+      // Use app router for navigation
+      onGenerateRoute: AppRouter.generateRoute,
+      initialRoute: AppRoutes.onboarding,
     );
   }
 }
